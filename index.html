@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Notion Calendar Widget</title>
+<style>
+body { margin: 0; background: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif; }
+.cal-wrap { width: 100%; max-width: 380px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 0.5px solid rgba(0,0,0,0.15); }
+.cal-header { background: #a0b2c8; color: #fff; display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; font-size: 18px; font-weight: 500; }
+.cal-arrow { cursor: pointer; user-select: none; font-size: 22px; padding: 0 8px; opacity: 0.85; }
+.cal-arrow:hover { opacity: 1; }
+.cal-body { padding: 12px 14px 16px; overflow: hidden; position: relative; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; width: 100%; }
+.day-name { font-size: 12px; color: #888; padding: 4px 0 10px; font-weight: 500; }
+.day-cell { display: flex; align-items: center; justify-content: center; aspect-ratio: 1/1; font-size: 13px; color: #333; }
+.day-inner { width: 78%; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+.day-cell.today .day-inner { background: #a0b2c8; color: #fff; font-weight: 500; }
+.day-cell.faded .day-inner { color: #ccc; }
+.day-cell:not(.faded):not(.empty):hover .day-inner { background: #f0f0f0; cursor: pointer; }
+.cal-grid.slide-in-right { animation: siR 0.22s ease forwards; }
+.cal-grid.slide-out-left { animation: soL 0.22s ease forwards; position: absolute; top: 0; left: 0; width: calc(100% - 28px); }
+.cal-grid.slide-in-left { animation: siL 0.22s ease forwards; }
+.cal-grid.slide-out-right { animation: soR 0.22s ease forwards; position: absolute; top: 0; left: 0; width: calc(100% - 28px); }
+@keyframes siR { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes soL { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+@keyframes siL { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes soR { from { transform: translateX(0); } to { transform: translateX(100%); } }
+</style>
+</head>
+<body>
+<div class="cal-wrap">
+  <div class="cal-header">
+    <div class="cal-arrow" id="prev">‹</div>
+    <div id="monthYear"></div>
+    <div class="cal-arrow" id="next">›</div>
+  </div>
+  <div class="cal-body" id="calBody"></div>
+</div>
+
+<script>
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DAYS = ["S","M","T","W","T","F","S"];
+const today = new Date();
+let cur = { y: today.getFullYear(), m: today.getMonth() };
+
+function buildGrid(y, m) {
+  const grid = document.createElement("div");
+  grid.className = "cal-grid";
+  DAYS.forEach(d => {
+    const dn = document.createElement("div");
+    dn.className = "day-name";
+    dn.textContent = d;
+    grid.appendChild(dn);
+  });
+  const first = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  for (let i = 0; i < first; i++) {
+    const cell = document.createElement("div");
+    cell.className = "day-cell empty";
+    const inner = document.createElement("div");
+    inner.className = "day-inner";
+    cell.appendChild(inner);
+    grid.appendChild(cell);
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const cell = document.createElement("div");
+    cell.className = "day-cell";
+    const inner = document.createElement("div");
+    inner.className = "day-inner";
+    inner.textContent = d;
+    if (d === today.getDate() && m === today.getMonth() && y === today.getFullYear()) {
+      cell.classList.add("today");
+    }
+    cell.appendChild(inner);
+    grid.appendChild(cell);
+  }
+  return grid;
+}
+
+function setMonth(y, m) {
+  document.getElementById("monthYear").textContent = `${MONTHS[m]} ${y}`;
+}
+
+function render(direction) {
+  const body = document.getElementById("calBody");
+  const oldGrid = body.querySelector(".cal-grid");
+  const newGrid = buildGrid(cur.y, cur.m);
+  setMonth(cur.y, cur.m);
+  if (!oldGrid) {
+    body.appendChild(newGrid);
+    return;
+  }
+  body.style.position = "relative";
+  body.style.minHeight = oldGrid.offsetHeight + "px";
+  body.appendChild(newGrid);
+  if (direction === "next") {
+    newGrid.classList.add("slide-in-right");
+    oldGrid.classList.add("slide-out-left");
+  } else {
+    newGrid.classList.add("slide-in-left");
+    oldGrid.classList.add("slide-out-right");
+  }
+  setTimeout(() => {
+    oldGrid.remove();
+    body.style.minHeight = "";
+    body.style.position = "";
+  }, 230);
+}
+
+document.getElementById("prev").addEventListener("click", () => {
+  cur.m--;
+  if (cur.m < 0) { cur.m = 11; cur.y--; }
+  render("prev");
+});
+document.getElementById("next").addEventListener("click", () => {
+  cur.m++;
+  if (cur.m > 11) { cur.m = 0; cur.y++; }
+  render("next");
+});
+
+render(null);
+</script>
+</body>
+</html>
